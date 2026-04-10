@@ -99,7 +99,7 @@ git log --author="gmkoo-d3v" --oneline
 
 - 원본 레포: [Bjs-coder-kr/AIPOC](https://github.com/Bjs-coder-kr/AIPOC)
 - 브랜치: `dev`
-- 작성자 필터: `gmkoo-d3v`
+- 커밋 목록 바로가기: [gmkoo-d3v 커밋 보기](https://github.com/Bjs-coder-kr/AIPOC/commits/dev?author=gmkoo-d3v)
 
 ```bash
 git clone https://github.com/Bjs-coder-kr/AIPOC
