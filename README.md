@@ -5,8 +5,11 @@
 ## 1. 프로젝트 개요
 - 원본 저장소: [Bjs-coder-kr/AIPOC](https://github.com/Bjs-coder-kr/AIPOC)
 - 프로젝트 성격: 문서 분석 및 최적화 POC
+- 팀 구성: 3인
 - 기술 스택: Python, Streamlit
-- 핵심 기능: PDF 분석, 품질 평가, RAG 검색, 타깃 맞춤 리라이팅(Actor-Critic), 결과 내보내기
+- 핵심 기능: PDF 분석, 품질 평가, RAG 검색, 
+  타깃 맞춤 리라이팅(Actor-Critic), 결과 내보내기
+- 기여 방식: 담당 기능을 독립 구현 후 팀 레포에 통합 및 안정화
 
 ## 2. 기여 목표
 1. 벡터스토어 장애가 발생해도 사용자 흐름이 중단되지 않도록 복원력을 높인다.
