@@ -106,3 +106,80 @@ git clone https://github.com/Bjs-coder-kr/AIPOC
 git log dev --author="gmkoo-d3v" --oneline
 ```
 ---
+실행 방법 (Quick Start)
+
+### 실행 환경
+- Python `3.10 ~ 3.12` 권장
+- `streamlit` 기반 로컬 실행
+- 기본 실행 엔트리포인트: `documind/app/main.py`
+
+### 1) 가상환경 생성
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+Windows PowerShell:
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+```
+
+### 2) 의존성 설치
+```bash
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+### 3) 환경 변수 설정
+프로젝트 루트에 `.env` 파일을 만들고 아래처럼 설정하면 됩니다.
+
+```bash
+OPENAI_API_KEY=your-openai-api-key
+OPENAI_MODEL=gpt-4o-mini
+
+# Optional
+GEMINI_API_KEY=
+ANTHROPIC_API_KEY=
+DEFAULT_EMBEDDING_PROVIDER=OpenAI
+```
+
+- `OPENAI_API_KEY`: AI 설명, Q&A, OpenAI 임베딩 경로 사용 시 필요
+- `GEMINI_API_KEY`: Gemini API 사용 시 필요
+- `ANTHROPIC_API_KEY`: Claude API 사용 시 필요
+- `DEFAULT_EMBEDDING_PROVIDER`: 기본 임베딩 제공자 선택값 (`OpenAI`, `Gemini`, `Ollama`)
+
+### 4) 앱 실행
+```bash
+streamlit run documind/app/main.py
+```
+
+Windows PowerShell에서는 아래 스크립트로도 실행할 수 있습니다.
+
+```powershell
+./scripts/demo_run.ps1
+```
+
+실행 후 기본 접속 주소:
+
+```text
+http://localhost:8501
+```
+
+### 5) 포트폴리오 시연 추천 순서
+1. `sample_pdfs/` 안의 예시 PDF 하나를 업로드
+2. `분석` 메뉴에서 품질 점검 결과 확인
+3. `타겟 최적화` 메뉴에서 대상별 리라이팅 확인
+4. `SQLite 탐색기`와 `ChromaDB 탐색기`에서 저장 상태 확인
+5. TXT/PDF 내보내기로 결과 공유 포맷 확인
+
+### 6) 선택 의존성
+- OCR 기반 PDF Q&A 기능까지 확인하려면 시스템에 `Tesseract` 설치가 필요합니다.
+- 로컬 임베딩 경로를 쓰려면 `Ollama`가 실행 중이어야 합니다.
+
+### 7) 최소 검증 명령
+```bash
+PYTHONPATH=. pytest documind/tests/test_loaders.py -q
+```
+
+의존성 설치 후 위 테스트로 로더 경로가 정상 동작하는지 빠르게 확인할 수 있습니다.
