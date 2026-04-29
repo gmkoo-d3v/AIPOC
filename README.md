@@ -97,36 +97,7 @@ PYTHONPATH=. pytest documind/tests/test_optim_rag.py -q
 PYTHONPATH=. pytest documind/tests/test_eval_cases.py -q
 ```
 
-## 6. 기여 확인 기준
-- Git 작성자 필터 기준(`gmkoo-d3v`) 커밋 이력 중심으로 정리
-- 대표 작업일: `2026-01-26`
-- 참고 명령:
-
-```bash
-git log --author="gmkoo-d3v" --oneline
-```
-
-## 7. 기여 커밋 확인
-원본 저장소에서 제 커밋을 직접 확인할 수 있습니다.
-
-- 원본 레포: [Bjs-coder-kr/AIPOC](https://github.com/Bjs-coder-kr/AIPOC)
-- 브랜치: `dev`
-- 커밋 목록 바로가기: [gmkoo-d3v 커밋 보기](https://github.com/Bjs-coder-kr/AIPOC/commits/dev?author=gmkoo-d3v)
-
-```bash
-git clone -b dev https://github.com/Bjs-coder-kr/AIPOC
-cd AIPOC
-git log --author="gmkoo-d3v" --oneline
-```
-
-이미 저장소를 clone한 상태라면 아래 명령으로도 확인할 수 있습니다.
-
-```bash
-git fetch origin
-git log origin/dev --author="gmkoo-d3v" --oneline
-```
-
-## 8. 실행 방법 (Quick Start)
+## 6. 실행 방법 (Quick Start)
 
 ### 실행 환경
 - Python `3.10 ~ 3.12` 권장
