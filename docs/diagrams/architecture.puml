@@ -1,0 +1,39 @@
+@startuml
+!pragma layout smetana
+top to bottom direction
+skinparam defaultFontName NanumGothic
+skinparam defaultFontSize 14
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam rectangle {
+  BorderColor #5880A8
+  BackgroundColor #F0F7FF
+  RoundCorner 12
+}
+skinparam ArrowColor #526277
+skinparam nodesep 35
+skinparam ranksep 35
+title Documind (AIPOC) — 현재 코드의 논리적 구조
+
+rectangle "Streamlit\napp/main.py → app/views/analy_app.py\n로그인 · 문서 업로드 · 메뉴 · 결과/다운로드 UI" as UI
+rectangle "Application\napp/views/analy_app.py 내 실행·세션 조정\n분석 모드 분기 · 최적화 generator 진행 · 사용자 결정 전달" as App #EAF4EF
+rectangle "Domain Modules\ningest / text / profile / quality — 문서 추출·정규화·품질 평가\nrag / anti — 문서 Q&A·비판·재작성\ntarget_optimizer → actor_critic — 타깃 리라이팅·반복 평가·최고 결과 복원" as Domain
+rectangle "Core · 공통 지원/어댑터\nschema · llm/config.py · llm/providers.py · ai/client.py · ai/embeddings.py\nutils — DB · best-practice 검색/저장 · 내보내기 · 로깅" as Core #EAF4EF
+rectangle "External Models\n생성/평가: Gemini CLI/API · Claude CLI/API\nOpenAI API · Codex CLI\n임베딩: OpenAI · Gemini · Ollama" as Models
+rectangle "외부 저장소·출력\nSQLite — 사용자·이력·설정·캐시\nChromaDB — RAG 문서·best practices\nJSON / TXT / DOCX / PDF / ZIP" as Data #FFF6E8
+
+UI --> App : 사용자 요청
+App --> Domain : 기능 실행
+Domain --> Core : 공통 기능 호출
+Core --> Models : 생성·평가·임베딩 요청
+Core --> Data : 저장·조회·내보내기
+App ..> Core : 인증·이력·탐색기·출력 직접 호출
+Domain ..> Models : anti의 LangChain 경로
+
+legend bottom
+  실선: 대표 호출 경로 / 점선: 계층을 건너뛰는 직접 호출
+  Application은 현재 analy_app.py에 UI와 함께 구현되어 있습니다.
+  Core는 공통 지원 코드의 묶음이며 외부 서비스 어댑터를 포함합니다.
+  타깃 최적화의 생성/평가 제공자와 임베딩 제공자는 별도로 선택합니다.
+endlegend
+@enduml
