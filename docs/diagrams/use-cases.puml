@@ -1,0 +1,79 @@
+@startuml
+' Render with PlantUML; Smetana avoids a separate Graphviz installation.
+!pragma layout smetana
+left to right direction
+skinparam defaultFontName NanumGothic
+skinparam defaultFontSize 14
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam backgroundColor #FFFFFF
+skinparam ArrowColor #526277
+skinparam actorBorderColor #334155
+skinparam usecase {
+  BackgroundColor #F0F7FF
+  BorderColor #5880A8
+}
+skinparam package {
+  BackgroundColor #FAFCFF
+  BorderColor #CBD5E1
+}
+title Documind (AIPOC) — 주요 유즈케이스
+
+actor "방문자" as Guest
+actor "로그인 사용자" as User
+actor "관리자" as Admin
+Admin --|> User
+
+rectangle "Documind · Streamlit 앱" {
+  package "계정" {
+    usecase "회원가입" as Signup
+    usecase "로그인" as Login
+    usecase "로그아웃" as Logout
+  }
+  package "문서 분석" {
+    usecase "문서 업로드" as Upload
+    usecase "문서 품질 분석" as Quality
+    usecase "AI 설명·추가 검토" as AIReview
+    usecase "문서 Q&A\n(근거 확인)" as QA
+  }
+  package "문서 개선" {
+    usecase "타깃 맞춤 최적화\n(대상·AI 제공자 선택)" as Optimize
+    usecase "최적화 결과 수락·재시도\n또는 자동 진행" as Decision
+    usecase "안티테제\n(비판 분석)" as Critique
+    usecase "비판 결과 기반\n개선 문서 재작성" as Rewrite
+  }
+  package "결과·데이터 조회" {
+    usecase "결과 다운로드" as Export
+    usecase "내 분석 이력 조회\n(SQLite 탐색기 포함)" as History
+    usecase "내 RAG 문서 조회" as RAGDocs
+    usecase "베스트 프랙티스 조회\n(임베딩 제공자별)" as Best
+    usecase "전체 이력·RAG 문서 조회" as AllData
+    usecase "사용자 목록 조회" as Users
+  }
+}
+
+Guest -- Signup
+Guest -- Login
+User -- Logout
+User -- Upload
+User -- Quality
+User -- QA
+User -- Optimize
+User -- Critique
+User -- Rewrite
+User -- Export
+User -- History
+User -- RAGDocs
+User -- Best
+Admin -- AllData
+Admin -- Users
+
+AIReview ..> Quality : <<extend>>\n[AI 옵션 활성화]
+Decision ..> Optimize : <<extend>>\n[사용자 확인 필요]
+
+legend bottom
+  관리자는 로그인 사용자의 기능을 상속합니다.
+  점선 <<extend>>는 조건부로 추가되는 동작입니다.
+  분석·개선은 로그인 및 문서 업로드 후 이용합니다.
+endlegend
+@enduml

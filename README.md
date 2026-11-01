@@ -10,6 +10,31 @@
 - 핵심 기능: PDF 분석, 품질 평가, RAG 검색, 타깃 맞춤 리라이팅(Actor-Critic), 결과 내보내기
 - 기여 방식: 담당 기능을 독립 구현 후 팀 레포에 통합 및 안정화
 
+## 유즈케이스 다이어그램
+
+아래는 개인 기여 범위를 구분하는 다이어그램이 아니라, 현재 `main`의 Streamlit 앱에서 제공하는 주요 사용자 기능입니다.
+
+![Documind 유즈케이스 다이어그램](docs/diagrams/use-cases.svg)
+
+[PlantUML 원본](docs/diagrams/use-cases.puml) · [SVG 크게 보기](docs/diagrams/use-cases.svg)
+
+- 방문자: 회원가입·로그인. 문서 기능은 로그인 후 이용합니다.
+- 로그인 사용자: 문서 업로드, 품질 분석, 문서 Q&A, 타깃 최적화, 안티테제 및 개선 재작성, 결과 다운로드, 자기 이력·RAG 문서와 베스트 프랙티스 조회.
+- 관리자: 일반 사용자 기능에 더해 전체 이력·RAG 문서 및 사용자 목록 조회. SQLite/ChromaDB 탐색기 자체는 일반 사용자도 이용할 수 있습니다.
+- 선행 조건: 분석·개선할 문서를 먼저 업로드합니다. 업로드 UI는 PDF/TXT/MD/DOCX를 허용하지만 처리 가능 여부는 모드·파일 내용·OCR 환경에 따라 달라집니다. 개선 재작성에는 먼저 생성한 비판 결과가 필요합니다.
+- 조건부 동작: AI 설명·추가 검토는 AI 옵션 활성화 시, 최적화 수락·재시도·자동 진행은 사용자 확인이 필요한 경우에 제공됩니다. `<<extend>>`는 이 조건부 동작을 뜻하며 실행 순서를 나타내지 않습니다.
+- AI 및 다운로드: AI 기능에는 해당 제공자의 실행 환경·인증 설정이 필요합니다. 다운로드 형식은 화면별로 다르며 분석 리포트는 JSON, 최적화 결과는 TXT/DOCX/PDF/ZIP, 안티테제 결과는 TXT/DOCX/PDF/JSON을 제공합니다.
+- 범위: 구현된 주요 사용자 목표만 표시합니다. 내부 DB·검색 엔진은 액터로 취급하지 않으며, 별도 운영자 역할이나 새 기능은 추가하지 않습니다.
+
+구현 근거: [화면·로그인·권한 분기](documind/app/views/analy_app.py), [타깃 최적화](documind/target_optimizer/optimizer.py), [Actor-Critic](documind/actor_critic/orchestrator.py), [비판·재작성 체인](documind/anti/rag/chain.py), [이력·사용자 저장소](documind/utils/db.py).
+
+GitHub에서 바로 볼 수 있도록 렌더링된 SVG를 함께 저장합니다. `.puml`을 수정했다면 PlantUML과 한글 폰트(NanumGothic)를 사용할 수 있는 환경에서 SVG도 다시 생성합니다. 아래 명령의 `plantuml.jar`는 준비한 PlantUML JAR 경로로 바꿉니다. Smetana 레이아웃을 사용하므로 Graphviz는 별도로 필요하지 않습니다.
+
+```bash
+java -Djava.awt.headless=true -Djava.awt.fonts=assets/fonts -jar plantuml.jar -charset UTF-8 -checkonly docs/diagrams/use-cases.puml
+java -Djava.awt.headless=true -Djava.awt.fonts=assets/fonts -jar plantuml.jar -charset UTF-8 -tsvg docs/diagrams/use-cases.puml
+```
+
 ## 2. 기여 목표
 1. ChromaDB 컬렉션 미존재 및 조회 실패 상황에서도 사용자 흐름이 불필요하게 중단되지 않도록 검색 경로의 안정성을 향상.
 2. 멀티 임베딩 프로바이더 환경에서 데이터 혼합으로 인한 검색 품질 저하를 방지.
