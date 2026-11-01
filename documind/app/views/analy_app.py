@@ -914,6 +914,10 @@ CUSTOM_CSS = """
   visibility: hidden;
   height: 0;
 }
+/* Keep sidebar navigation accessible when the Streamlit toolbar is hidden. */
+[data-testid="stExpandSidebarButton"] {
+  visibility: visible;
+}
 [data-testid="stFileUploader"] {
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 14px;

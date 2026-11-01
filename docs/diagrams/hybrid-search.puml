@@ -1,0 +1,32 @@
+@startuml
+!pragma layout smetana
+top to bottom direction
+skinparam defaultFontName NanumGothic
+skinparam defaultFontSize 16
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam ArrowColor #64748B
+skinparam rectangleBackgroundColor #EDF5FF
+skinparam rectangleBorderColor #5880A8
+title 타겟 최적화 — Best Practice 예시의 Hybrid Search
+rectangle "입력 원문 + target_level + 임베딩 provider\n빈 원문이면 빈 목록 반환 · 이메일/전화번호 패턴 마스킹" as Input
+rectangle "provider별 Chroma 컬렉션에서 후보 로드\n동일 target_level 먼저 조회\n조회 실패·후보 없음 → target 필터 없이 재조회" as Corpus
+rectangle "BM25 · 키워드 경로\n후보의 원문을 토큰화\n전체 후보의 BM25 점수 계산\nMin–Max 정규화 → B" as BM
+rectangle "Embedding · 의미 경로\n질의 임베딩 → Chroma 거리 검색\n후보 수 = min(전체, max(n×4, 12))\n1/(1+거리) → Min–Max 정규화 → E" as Vec
+rectangle "품질 점수 ≥ 92인 후보만 결합\nHybrid score = 0.6 × E + 0.4 × B\n점수 내림차순 · 기본 상위 2개" as Rank #E9F5EF
+rectangle "Optimizer 프롬프트에 참고 예시 삽입\n원문·재작성 각 최대 500자\n총 1,000 토큰 이하 · 최대 2개\n내용 복제 대신 문체·톤 참고" as Prompt
+Input --> Corpus
+Corpus --> BM
+Corpus --> Vec
+BM --> Rank
+Vec --> Rank
+Rank --> Prompt
+legend bottom
+  범위: TargetOptimizer의 재작성 예시 검색. 일반 Q&A 전체의 검색 구조를 뜻하지 않습니다.
+  0.6/0.4는 구현된 고정 가중치이며 실험으로 최적성을 입증한 값이 아닙니다.
+  정규화 점수가 모두 같으면 0입니다. 벡터 후보에 없는 문서의 E는 0입니다.
+  벡터 질의 실패·빈 임베딩 시 E=0으로 결합합니다. 임베딩 생성 예외는 이 함수에서 잡지 않습니다.
+  target 후보가 있지만 품질 필터로 모두 탈락한 경우에는 target 필터를 해제하지 않습니다.
+  근거: documind/utils/best_practice_manager.py · documind/target_optimizer/optimizer.py
+endlegend
+@enduml

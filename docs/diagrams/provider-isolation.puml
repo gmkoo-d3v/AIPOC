@@ -1,0 +1,44 @@
+@startuml
+!pragma layout smetana
+left to right direction
+skinparam defaultFontName NanumGothic
+skinparam defaultFontSize 15
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam ArrowColor #64748B
+skinparam packageStyle rectangle
+skinparam rectangle {
+  BackgroundColor #F0F7FF
+  BorderColor #5880A8
+}
+skinparam database {
+  BackgroundColor #F8FAFC
+  BorderColor #64748B
+}
+title Best Practices — 임베딩 provider별 컬렉션 분리
+rectangle "Target Optimization\n우수 사례 저장·예시 검색" as Optim
+rectangle "Best Practice Manager\nprovider로 컬렉션 이름 결정\n저장: 원문 임베딩 + 재작성문·메타데이터\n검색: Embedding 0.6 + BM25 0.4" as Manager #EAF4EF
+package "EmbeddingFactory · 임베딩 생성" {
+  rectangle "OpenAIEmbedder\n기본: text-embedding-3-small" as OpenAI
+  rectangle "GeminiEmbedder\n기본: models/text-embedding-004" as Gemini
+  rectangle "OllamaEmbedder\n기본: nomic-embed-text" as Ollama
+}
+package "ChromaDB · chroma_best_practices/" {
+  database "optim_best_practices_v2_openai" as COpenAI
+  database "optim_best_practices_v2_gemini" as CGemini
+  database "optim_best_practices_v2_ollama" as COllama
+}
+Optim --> Manager : embedding_provider
+Manager --> OpenAI
+Manager --> Gemini
+Manager --> Ollama
+OpenAI --> COpenAI : 벡터 경로
+Gemini --> CGemini : 벡터 경로
+Ollama --> COllama : 벡터 경로
+legend bottom
+  대표 provider 경로입니다. 실제 컬렉션 읽기·쓰기는 Best Practice Manager가 수행합니다.
+  provider별 분리로 서로 다른 provider의 벡터 혼합을 줄입니다.
+  컬렉션 이름에 모델·벡터 차원은 포함되지 않습니다. 동일 provider의 모델 변경은 별도 관리가 필요합니다.
+  차원 수는 모델에 따라 달라지므로 고정값을 표시하지 않았습니다. 실제 API·차원 호환성은 미검증입니다.
+endlegend
+@enduml

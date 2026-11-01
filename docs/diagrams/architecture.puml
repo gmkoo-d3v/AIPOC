@@ -5,35 +5,62 @@ skinparam defaultFontName NanumGothic
 skinparam defaultFontSize 14
 skinparam shadowing false
 skinparam backgroundColor #FFFFFF
+skinparam packageStyle rectangle
+skinparam ArrowColor #64748B
 skinparam rectangle {
-  BorderColor #5880A8
   BackgroundColor #F0F7FF
-  RoundCorner 12
+  BorderColor #5880A8
 }
-skinparam ArrowColor #526277
-skinparam nodesep 35
-skinparam ranksep 35
-title Documind (AIPOC) — 현재 코드의 논리적 구조
+skinparam package {
+  BackgroundColor #FAFCFF
+  BorderColor #CBD5E1
+}
+title Documind — 상세 시스템 구조
 
-rectangle "Streamlit\napp/main.py → app/views/analy_app.py\n로그인 · 문서 업로드 · 메뉴 · 결과/다운로드 UI" as UI
-rectangle "Application\napp/views/analy_app.py 내 실행·세션 조정\n분석 모드 분기 · 최적화 generator 진행 · 사용자 결정 전달" as App #EAF4EF
-rectangle "Domain Modules\ningest / text / profile / quality — 문서 추출·정규화·품질 평가\nrag / anti — 문서 Q&A·비판·재작성\ntarget_optimizer → actor_critic — 타깃 리라이팅·반복 평가·최고 결과 복원" as Domain
-rectangle "Core · 공통 지원/어댑터\nschema · llm/config.py · llm/providers.py · ai/client.py · ai/embeddings.py\nutils — DB · best-practice 검색/저장 · 내보내기 · 로깅" as Core #EAF4EF
-rectangle "External Models\n생성/평가: Gemini CLI/API · Claude CLI/API\nOpenAI API · Codex CLI\n임베딩: OpenAI · Gemini · Ollama" as Models
-rectangle "외부 저장소·출력\nSQLite — 사용자·이력·설정·캐시\nChromaDB — RAG 문서·best practices\nJSON / TXT / DOCX / PDF / ZIP" as Data #FFF6E8
-
-UI --> App : 사용자 요청
-App --> Domain : 기능 실행
-Domain --> Core : 공통 기능 호출
-Core --> Models : 생성·평가·임베딩 요청
-Core --> Data : 저장·조회·내보내기
-App ..> Core : 인증·이력·탐색기·출력 직접 호출
-Domain ..> Models : anti의 LangChain 경로
+actor "사용자" as User
+rectangle "Streamlit UI + Application 실행 제어\napp/main.py → app/views/analy_app.py\n인증·메뉴·세션·실행 분기·사용자 결정" as App #EAF4EF
+package "Domain Modules · 기능 모듈" {
+  rectangle "Ingest / Text / Profile / Quality\nPDF·TXT·MD·DOCX 추출\n정규화·분류·규칙 기반 품질 분석" as Quality
+  rectangle "Target Optimization\n페르소나·가드레일·예시 검색\nActor-Critic generator\n수락·재시도·자동 진행·최고 결과 복원" as Optim
+  rectangle "RAG / Antithesis\n문서 청킹·검색·근거 기반 Q&A\nOCR·비판 분석·개선 재작성" as RAG
+}
+package "Core Infrastructure · 공통 지원과 어댑터" {
+  rectangle "LLM / AI\nllm/providers.py · ai/client.py\n생성·평가 요청" as LLM
+  rectangle "Embeddings / Redaction\nai/embeddings.py · ai/redact.py\n임베딩·민감정보 마스킹" as Embed
+  rectangle "Best Practice Manager\nprovider별 컬렉션\nEmbedding 0.6 + BM25 0.4" as Best
+  rectangle "DB / Export / Schema\nutils/db.py · utils/export.py\nschema.py · 로깅·설정" as Shared
+}
+package "Persistence · 저장과 출력" {
+  database "SQLite\n사용자·이력·설정\n임베딩 캐시" as SQL
+  database "ChromaDB\nRAG 청크\nprovider별 best practices" as Chroma
+  rectangle "임시 파일 / 다운로드 바이트\n일부 OCR PDF 임시 파일\nJSON·TXT·DOCX·PDF·ZIP" as Files
+}
+package "External Models" {
+  cloud "생성·평가\nGemini CLI/API · Claude CLI/API\nOpenAI API · Codex CLI" as Generate
+  cloud "임베딩\nOpenAI · Gemini · Ollama" as Embedding
+}
+User --> App
+App --> Quality : 분석
+App --> Optim : 최적화·결정 전달
+App --> RAG : Q&A·비판·재작성
+App --> Shared : 인증·이력·출력
+Quality --> Shared : Report 스키마·로그
+Optim --> LLM : 생성·평가
+Optim --> Best : 예시 검색·재사용
+Best --> Embed
+Best --> Chroma
+Embed --> SQL : 임베딩 캐시
+Embed --> Embedding
+LLM --> Generate
+RAG --> Chroma : anti 벡터 저장·검색
+RAG ..> Generate : LangChain 직접 경로
+Shared --> SQL
+Shared --> Files
 
 legend bottom
-  실선: 대표 호출 경로 / 점선: 계층을 건너뛰는 직접 호출
-  Application은 현재 analy_app.py에 UI와 함께 구현되어 있습니다.
-  Core는 공통 지원 코드의 묶음이며 외부 서비스 어댑터를 포함합니다.
-  타깃 최적화의 생성/평가 제공자와 임베딩 제공자는 별도로 선택합니다.
+  논리적 역할 구분입니다. UI와 Application 제어는 현재 같은 파일에 있습니다.
+  화살표는 대표 호출·데이터 경로이며, 모든 import를 나열하지 않습니다.
+  UI는 DB·Chroma·LLM·마스킹·OCR 임시 파일에도 직접 접근합니다.
+  Q&A는 App의 인덱스·검색 코드도 사용합니다. 외부 모델은 기능별 경로가 다릅니다.
 endlegend
 @enduml

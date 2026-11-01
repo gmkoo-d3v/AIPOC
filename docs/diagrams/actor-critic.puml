@@ -1,0 +1,36 @@
+@startuml
+!pragma layout smetana
+top to bottom direction
+skinparam defaultFontName NanumGothic
+skinparam defaultFontSize 17
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam ArrowColor #64748B
+skinparam rectangleBackgroundColor #EDF5FF
+skinparam rectangleBorderColor #5880A8
+title Actor–Critic — 생성·평가·개선과 사용자 결정
+rectangle "Actor · 대상 독자를 위한 초안 생성" as Actor
+rectangle "Critic · 점수와 개선 피드백\n시도 이력·최고 결과 갱신" as Critic
+rectangle "첫 90점 이상 · 보너스 개선 1회\n95점을 목표로 재작성·재평가" as Bonus #FFF4E5
+rectangle "85~89점 · 사용자 확인\n수락 / 재시도 / 자동 진행" as Confirm #FFF4E5
+rectangle "피드백을 반영한 개선 프롬프트\n남은 시도 안에서 다시 생성" as Refine
+rectangle "결과 반환\n통과·수락 / 최고 결과 복원\n또는 한도 종료 시 최고 결과" as Result #E9F5EF
+Actor --> Critic
+Critic --> Bonus : 첫 90점 이상
+Bonus --> Refine
+Critic --> Confirm : 85~89점\n자동 진행 전
+Confirm --> Result : 수락
+Confirm --> Refine : 재시도·자동 진행
+Critic --> Refine : 85점 미만 또는\n자동 진행 중 90점 미만
+Refine --> Actor : 시도 가능
+Critic --> Result : 보너스 이후 90점 이상\n또는 보너스 이후 점수 하락
+Refine --> Result : 시도 소진 정책 적용
+legend bottom
+  대표 흐름을 추린 개요입니다. 모든 분기·반환 상태는 [[actor-critic-detail.svg 상세 흐름도]]를 참고하세요.
+  기본 5회 + 최고 점수 <75일 때 추가 3회(한 번) + 필요시 보너스 한도 1회 연장.
+  첫 90점 이상은 즉시 종료하지 않습니다. 보너스 이후 점수 하락 시 최고 결과를 복원합니다.
+  auto_run은 중간 확인을 생략합니다. 소진 시 최고 85~89점은 최종 확인이 다시 가능합니다.
+  소진 시점·결정에 따른 특수 반환은 상세도에 표시했습니다. 숫자는 설정 기본값입니다.
+  근거: documind/actor_critic/orchestrator.py · documind/llm/config.py
+endlegend
+@enduml

@@ -1,249 +1,241 @@
-# Documind (AIPOC) - 개인 기여 포트폴리오
+# DocuMind — 문서 대상 맞춤 최적화 · 개인 기여 포트폴리오
 
-> 이 문서는 팀 프로젝트 전체 소개가 아니라, 제가 직접 설계하고 구현한 범위만 정리한 README입니다.
+문서를 독자의 수준에 맞게 재작성하고, 생성·평가 LLM을 나눈 Actor-Critic 흐름으로 결과를 점검하는 3인 팀 프로젝트입니다. 이 README는 프로젝트 구조와 제가 구현·고도화한 범위를 코드·커밋·화면으로 정리합니다.
 
-## 1. 프로젝트 개요
-- 원본 저장소: [Bjs-coder-kr/AIPOC](https://github.com/Bjs-coder-kr/AIPOC)
-- 프로젝트 성격: 문서 분석 및 최적화 POC
-- 팀 구성: 3인
-- 기술 스택: Python, Streamlit, LangChain, ChromaDB, SQLite, rank_bm25, pypdf, python-docx, reportlab
-- 생성·평가 제공자: Gemini CLI/API, Claude CLI/API, OpenAI API, Codex CLI
-- 임베딩 제공자: OpenAI, Gemini, Ollama (생성·평가 제공자와 별도 설정)
-- 핵심 기능: PDF 분석, 품질 평가, RAG 검색, 타깃 맞춤 리라이팅(Actor-Critic), 결과 내보내기
-- 기여 방식: 담당 기능을 독립 구현 후 팀 레포에 통합 및 안정화
+[원본 팀 저장소](https://github.com/Bjs-coder-kr/AIPOC) · [개인 포트폴리오 저장소](https://github.com/gmkoo-d3v/AIPOC) · [구현 검토 기록](docs/diagram-review.md)
 
-## 유즈케이스 다이어그램
+| 구분 | 내용 |
+|---|---|
+| 주요 기능 | 문서 품질 분석, 대상 맞춤 최적화, 문서 Q&A, 안티테제, 데이터 탐색·내보내기 |
+| 개인 역할 | Actor-Critic 대화형 제어·최고 결과 복원, Best Practice 검색·provider 분리, DB 탐색기·결과 내보내기 |
+| 기본 스택 | Python · Streamlit · ChromaDB · SQLite |
+| 주요 라이브러리 | LangChain · rank_bm25 · pypdf · python-docx · reportlab |
+| 생성·평가 연동 | Gemini CLI/API · Claude CLI/API · OpenAI API · Codex CLI |
+| 임베딩 연동 | OpenAI · Gemini · Ollama |
 
-아래는 개인 기여 범위를 구분하는 다이어그램이 아니라, 현재 `main`의 Streamlit 앱에서 제공하는 주요 사용자 기능입니다.
+## 1. 내 역할과 구현 근거
 
-![Documind 유즈케이스 다이어그램](docs/diagrams/use-cases.svg)
+### 문서 대상 맞춤 최적화
 
-[PlantUML 원본](docs/diagrams/use-cases.puml) · [SVG 크게 보기](docs/diagrams/use-cases.svg)
+`public / student / worker / expert` 네 가지 대상에 맞춰 문서 표현·어휘·난이도를 조정하는 기능을 고도화했습니다. 주 LLM(생성)과 보조 LLM(평가)을 별도로 선택할 수 있고, 평가 결과에 따라 수락·재시도·자동 진행을 제어합니다. Best Practice 검색으로 참고 예시를 제공하고 추가 개선 중 점수가 하락하면 최고 결과로 복원합니다.
 
-- 방문자: 회원가입·로그인. 문서 기능은 로그인 후 이용합니다.
-- 로그인 사용자: 문서 업로드, 품질 분석, 문서 Q&A, 타깃 최적화, 안티테제 및 개선 재작성, 결과 다운로드, 자기 이력·RAG 문서와 베스트 프랙티스 조회.
-- 관리자: 일반 사용자 기능에 더해 전체 이력·RAG 문서 및 사용자 목록 조회. SQLite/ChromaDB 탐색기 자체는 일반 사용자도 이용할 수 있습니다.
-- 선행 조건: 분석·개선할 문서를 먼저 업로드합니다. 업로드 UI는 PDF/TXT/MD/DOCX를 허용하지만 처리 가능 여부는 모드·파일 내용·OCR 환경에 따라 달라집니다. 개선 재작성에는 먼저 생성한 비판 결과가 필요합니다.
-- 조건부 동작: AI 설명·추가 검토는 AI 옵션 활성화 시, 최적화 수락·재시도·자동 진행은 사용자 확인이 필요한 경우에 제공됩니다. `<<extend>>`는 이 조건부 동작을 뜻하며 실행 순서를 나타내지 않습니다.
-- AI 및 다운로드: AI 기능에는 해당 제공자의 실행 환경·인증 설정이 필요합니다. 다운로드 형식은 화면별로 다르며 분석 리포트는 JSON, 최적화 결과는 TXT/DOCX/PDF/ZIP, 안티테제 결과는 TXT/DOCX/PDF/JSON을 제공합니다.
-- 범위: 구현된 주요 사용자 목표만 표시합니다. 내부 DB·검색 엔진은 액터로 취급하지 않으며, 별도 운영자 역할이나 새 기능은 추가하지 않습니다.
+초기 Actor-Critic 생성·평가 루프는 팀의 기존 구현입니다. 제 기여는 상태 모델·generator 기반 제어·사용자 결정·복원과 검색 연결의 확장입니다.
 
-구현 근거: [화면·로그인·권한 분기](documind/app/views/analy_app.py), [타깃 최적화](documind/target_optimizer/optimizer.py), [Actor-Critic](documind/actor_critic/orchestrator.py), [비판·재작성 체인](documind/anti/rag/chain.py), [이력·사용자 저장소](documind/utils/db.py).
+| 개인 기여 | 근거 커밋 |
+|---|---|
+| `OptimizerState`, generator, 사용자 수락·재시도, 추가 개선·최고 결과 복원, 최적화 세션 연결 | [76aaf60](https://github.com/gmkoo-d3v/AIPOC/commit/76aaf60) |
+| 수락·1회 재시도·끝까지 자동 진행의 3버튼 UI와 `auto_run` 처리 | [30f4f66](https://github.com/gmkoo-d3v/AIPOC/commit/30f4f66) |
+| Best Practice 저장·Hybrid 검색 및 provider별 컬렉션 분리 | [76aaf60](https://github.com/gmkoo-d3v/AIPOC/commit/76aaf60), [4d1ba9a](https://github.com/gmkoo-d3v/AIPOC/commit/4d1ba9a) |
 
-GitHub에서 바로 볼 수 있도록 렌더링된 SVG를 함께 저장합니다. `.puml`을 수정했다면 PlantUML과 한글 폰트(NanumGothic)를 사용할 수 있는 환경에서 SVG도 다시 생성합니다. 아래 명령의 `plantuml.jar`는 준비한 PlantUML JAR 경로로 바꿉니다. Smetana 레이아웃을 사용하므로 Graphviz는 별도로 필요하지 않습니다.
+초기 구현과의 경계는 [423020e](https://github.com/gmkoo-d3v/AIPOC/commit/423020e)에서 확인할 수 있습니다. 현재 구현: [TargetOptimizer](documind/target_optimizer/optimizer.py), [Actor-Critic](documind/actor_critic/orchestrator.py).
+
+### ChromaDB 탐색기와 provider별 저장 분리
+
+컬렉션 조회, 문서·메타데이터 상세 확인, Best Practice의 TXT/PDF 내보내기를 연결했습니다. 최적화 참고 예시는 임베딩 provider별 컬렉션에 저장하고, 탐색기에서 provider를 바꾸면 대응하는 컬렉션을 조회합니다. 조회 실패나 대상 조건에 맞는 후보가 없는 경우의 검색 경로도 보완했습니다.
+
+관련 커밋: [a3c48b1](https://github.com/gmkoo-d3v/AIPOC/commit/a3c48b1), [b013cc3](https://github.com/gmkoo-d3v/AIPOC/commit/b013cc3), [4d1ba9a](https://github.com/gmkoo-d3v/AIPOC/commit/4d1ba9a), [4d78fab](https://github.com/gmkoo-d3v/AIPOC/commit/4d78fab). 현재 구현: [탐색기 UI](documind/app/views/analy_app.py), [Best Practice Manager](documind/utils/best_practice_manager.py).
+
+### SQLite 이력·사용자 조회와 결과 내보내기
+
+분석 이력, 결과 상세, 관리자용 사용자 목록을 조회하는 화면을 구성했습니다. 일반 사용자는 자기 이력을, 관리자는 전체 이력을 조회하며, 재작성 결과가 있는 최적화 이력에서는 TXT/PDF 다운로드를 제공합니다. TXT에 UTF-8 BOM을 적용하고 PDF의 한글 폰트 로딩을 보완했습니다.
+
+관련 커밋: [a3c48b1](https://github.com/gmkoo-d3v/AIPOC/commit/a3c48b1), [aaf29f8](https://github.com/gmkoo-d3v/AIPOC/commit/aaf29f8), [5446707](https://github.com/gmkoo-d3v/AIPOC/commit/5446707), [58f7f41](https://github.com/gmkoo-d3v/AIPOC/commit/58f7f41), [8326a08](https://github.com/gmkoo-d3v/AIPOC/commit/8326a08). 현재 구현: [SQLite 저장소](documind/utils/db.py), [내보내기](documind/utils/export.py).
+
+소스 패키지·저장소 구조 정리에도 참여했습니다: [f66c715](https://github.com/gmkoo-d3v/AIPOC/commit/f66c715), [412d0e0](https://github.com/gmkoo-d3v/AIPOC/commit/412d0e0), [5ea4f6f](https://github.com/gmkoo-d3v/AIPOC/commit/5ea4f6f), [48b17d1](https://github.com/gmkoo-d3v/AIPOC/commit/48b17d1).
+
+## 2. 시스템 구조
+
+![DocuMind 시스템 기능 인포그래픽](docs/infographics/system-overview.png)
+
+[상세 구조 PUML](docs/diagrams/architecture.puml) · [상세 PNG](docs/diagrams/architecture.png) · **[슬라이드용 간소화 구조도](docs/diagrams/architecture-slide.png)** · [슬라이드 PUML](docs/diagrams/architecture-slide.puml)
+
+UI와 Application 실행 제어는 현재 `app/views/analy_app.py`에 함께 있습니다. 이 파일이 기능 모듈과 DB 탐색·이력·출력을 연결합니다. 생성·평가 제공자와 임베딩 제공자는 구분하며, 안티테제에는 LangChain을 통한 모델 직접 호출 경로가 있습니다. 두 구조도는 같은 구현을 서로 다른 상세도로 표현합니다.
+
+<details>
+<summary>구현 구조를 자세히 보기: PlantUML</summary>
+
+![DocuMind 상세 시스템 구조](docs/diagrams/architecture.svg)
+
+기능 인포그래픽은 주요 역할을 요약합니다. 직접 호출·공통 지원·저장 경로는 위 구조도와 소스에서 확인할 수 있습니다.
+
+</details>
+
+<details>
+<summary>사용자 기능 전체: 유즈케이스 다이어그램</summary>
+
+![DocuMind 유즈케이스](docs/diagrams/use-cases.svg)
+
+[PUML 원본](docs/diagrams/use-cases.puml). 문서 기능은 로그인·업로드 후 이용합니다. 관리자에게는 전체 이력·RAG 문서와 사용자 목록 조회가 추가됩니다.
+
+</details>
+
+## 3. 최적화 동작과 설계 선택
+
+### 같은 문서, 독자에 맞는 표현
+
+![대상 맞춤 문서 최적화 기능 인포그래픽](docs/infographics/target-optimization.png)
+
+원문과 대상 선택에서 시작해 가이드·참고 예시·Actor-Critic 개선·결과 확인으로 이어집니다. 숫자·날짜 검사와 사용자 결정, 이력 저장을 함께 연결합니다. 검사 생략·fallback 등 세부 동작은 아래 PlantUML 참조도에 표시했습니다.
+
+### 네 가지 독자에 맞춘 페르소나
+
+![일반인·대학생·실무자·전문가 기능 인포그래픽](docs/infographics/personas.png)
+
+일반인은 친근한 문장과 비유, 대학생은 개념·정의·예시, 실무자는 실행 중심 요약, 전문가는 정밀한 용어와 논리에 초점을 둡니다.
+
+### Actor-Critic 검증과 사용자 결정
+
+![Actor-Critic 생성·평가·사용자 결정 인포그래픽](docs/infographics/actor-critic.png)
+
+생성 모델과 평가 모델을 분리해 피드백 기반 개선을 수행합니다. 기본 설정은 5회 시도, 85~89점 사용자 확인, 90점 이상 통과 기준입니다. 최초 통과 기준 도달 후에는 추가 개선을 시도하며, 조건에 따라 시도 한도가 연장될 수 있습니다. 추가 개선에서 점수가 하락하면 최고 결과로 복원합니다. 따라서 “최대 5회” 또는 “90점 이상 즉시 종료”로 설명하지 않습니다.
+
+[PUML](docs/diagrams/actor-critic.puml) · [PNG](docs/diagrams/actor-critic.png) · [구현 코드](documind/actor_critic/orchestrator.py)
+
+<details>
+<summary>Actor-Critic의 상세 분기·종료 경로</summary>
+
+![Actor-Critic 구현 개요](docs/diagrams/actor-critic.svg)
+
+![Actor-Critic 상세 코드 흐름](docs/diagrams/actor-critic-detail.svg)
+
+[PUML](docs/diagrams/actor-critic-detail.puml) · [PNG](docs/diagrams/actor-critic-detail.png). 마지막 시도의 사용자 확인과 재시도 한도 소진 후 동작까지 표시한 구현 참조용 그림입니다.
+
+</details>
+
+<details>
+<summary>대상 맞춤 최적화 전체 파이프라인</summary>
+
+![타깃 최적화 파이프라인](docs/diagrams/target-optimization.svg)
+
+[PUML](docs/diagrams/target-optimization.puml) · [PNG](docs/diagrams/target-optimization.png). UI가 사용자 결정·세션·이력 저장을 조정하고, Optimizer가 페르소나·참고 예시·생성·검사를 연결합니다. 그림에는 현재 fallback과 검사를 생략하는 경로도 표시했습니다.
+
+</details>
+
+### Best Practice Hybrid 검색
+
+![의미·키워드 기반 Best Practice 검색 인포그래픽](docs/infographics/hybrid-search.png)
+
+최적화 참고 예시를 검색할 때 정규화한 임베딩 유사도와 BM25 점수를 `0.6 × Embedding + 0.4 × BM25`로 결합합니다. 의미 유사도와 키워드 일치를 함께 반영하며, 기본적으로 품질 점수 92 이상 후보에서 상위 2개를 사용합니다. 이 가중치는 구현값이며 비교 실험으로 검증된 최적값은 `[uncertain]`입니다. 적용 범위는 Target Optimizer의 우수사례 검색입니다.
+
+[PUML](docs/diagrams/hybrid-search.puml) · [PNG](docs/diagrams/hybrid-search.png) · [검색 코드](documind/utils/best_practice_manager.py)
+
+### 임베딩 provider별 우수사례 저장
+
+![ChromaDB provider별 컬렉션 분리 인포그래픽](docs/infographics/provider-isolation.png)
+
+OpenAI·Gemini·Ollama의 임베딩을 각 Best Practice 컬렉션으로 분리해 저장·검색합니다. 같은 provider 안에서 모델을 변경하는 경우의 호환성은 별도로 관리해야 합니다.
+
+<details>
+<summary>임베딩 provider별 저장 구조와 4개 페르소나</summary>
+
+![Best Practice provider별 컬렉션](docs/diagrams/provider-isolation.svg)
+
+Best Practice 컬렉션은 `optim_best_practices_v2_openai / gemini / ollama`로 분리합니다. 모델·차원은 컬렉션 이름에 포함되지 않으므로 같은 provider에서 임베딩 모델을 바꾸는 경우에는 별도 관리가 필요합니다. 차원 수는 모델·설정에 따라 달라져 고정 수치로 표시하지 않았습니다.
+
+[PUML](docs/diagrams/provider-isolation.puml) · [PNG](docs/diagrams/provider-isolation.png)
+
+![일반인·대학생·실무자·전문가 페르소나](docs/diagrams/personas.svg)
+
+대상에 맞는 문체·어휘·구조를 생성·평가 프롬프트에 반영합니다. 전문가는 정밀한 용어와 논리를 유지하는 정책입니다. 모든 대상을 무조건 쉽게 요약하는 방식으로 설명하지 않습니다.
+
+[PUML](docs/diagrams/personas.puml) · [PNG](docs/diagrams/personas.png) · [페르소나 정의](documind/target_optimizer/personas.py)
+
+</details>
+
+## 4. 화면으로 보는 구현
+
+사용자가 제공한 `img/1`의 화면 5장을 저장소 안으로 정리했습니다. RAG·Best Practice 화면은 기존 시연 데이터를 조회한 캡처이며, 표시된 점수는 당시 저장된 내부 평가값입니다. 이번 문서 작업에서 외부 모델을 새로 호출하거나 성능을 재측정하지 않았습니다.
+
+### 문서 대상 맞춤 최적화 — 생성·평가 모델 선택
+
+![문서 대상 맞춤 최적화 설정 화면](docs/screens/target-optimizer.png)
+
+네 가지 페르소나와 생성·평가 LLM, 임베딩 provider를 선택하는 화면입니다. 캡처에서는 두 LLM이 모두 Gemini CLI로 선택되어 있습니다. 서로 다른 제공자를 고르는 기능은 [설정 UI](documind/app/views/analy_app.py)와 [Actor-Critic 코드](documind/actor_critic/orchestrator.py)에서 확인할 수 있습니다. 이 사진은 설정 화면을 보여줍니다.
+
+### ChromaDB 탐색기 — provider별 Best Practice 조회
+
+![ChromaDB Best Practices 탐색기](docs/screens/chroma-best-practices.png)
+
+OpenAI / Gemini / Ollama 선택에 따라 Best Practice 컬렉션을 전환합니다. 저장 문서와 메타데이터를 확인하고, 상세 결과를 TXT/PDF로 내보내는 UI입니다. 캡처의 `test` 문구·키워드는 기존 테스트 데이터이므로 실제 문서 최적화 성과로 해석하지 않습니다.
+
+### ChromaDB 탐색기 — 사용자별 RAG 문서 조회
+
+![일반 사용자 RAG 문서 탐색기](docs/screens/chroma-rag-user.png)
+
+벡터 저장소에 들어 있는 문서 청크와 파일명·페이지·사용자 메타데이터를 함께 확인합니다. 탐색기는 일반 사용자에게 `user_id == username` 필터를 적용하고 관리자는 전체를 조회합니다. 이 화면은 문서·메타데이터 조회 UI를 보여주며, 수치 벡터 자체를 표시하는 화면은 아닙니다. [권한 분기 구현](documind/app/views/analy_app.py).
+
+### SQLite 탐색기 — 분석 이력과 결과 상세
+
+![파일명 블러 처리된 SQLite 분석 이력](docs/screens/sqlite-history-public.jpg)
+
+관리자 화면에서 분석 이력의 ID·사용자·일시를 조회합니다. 공개용 이미지에서는 파일명 열의 블러를 유지하고, 상세 JSON에 남아 있던 파일명은 촬영 범위에서 제외했습니다. 원본 DB는 변경하지 않았습니다. 재작성 결과가 있는 최적화 이력에서는 결과 상세와 TXT/PDF 다운로드를 제공합니다.
+
+<details>
+<summary>보조 화면: 관리자 사용자 목록</summary>
+
+![관리자 사용자 목록](docs/screens/user-list.png)
+
+사용자·역할·가입 일시를 확인하는 관리자용 화면입니다. 대표 기능 화면은 위의 최적화·ChromaDB·분석 이력으로 구성하고, 계정 목록은 보조 자료로 둡니다.
+
+</details>
+
+[캡처 출처와 가공 범위](docs/screens/README.md)
+
+## 5. 실행 방법 — uv
+
+`.python-version`은 Python 3.11을 지정합니다. 의존성은 기존 `requirements.txt`를 사용하며, 버전 잠금 파일은 없습니다. 시스템에 uv가 준비된 환경에서 실행합니다.
 
 ```bash
-java -Djava.awt.headless=true -Djava.awt.fonts=assets/fonts -jar plantuml.jar -charset UTF-8 -checkonly docs/diagrams/use-cases.puml
-java -Djava.awt.headless=true -Djava.awt.fonts=assets/fonts -jar plantuml.jar -charset UTF-8 -tsvg docs/diagrams/use-cases.puml
+uv venv --python 3.11
+uv pip install --python .venv/bin/python -r requirements.txt
+uv run --no-project --python .venv/bin/python streamlit run documind/app/main.py
 ```
 
-## 아키텍처 다이어그램
-
-![Documind 아키텍처 다이어그램](docs/diagrams/architecture.svg)
-
-[PlantUML 원본](docs/diagrams/architecture.puml) · [SVG 크게 보기](docs/diagrams/architecture.svg)
-
-`Streamlit → Application → Domain Modules → Core → External Models`는 현재 코드를 역할별로 구분한 논리적 구조입니다. Application의 실행·세션 조정은 현재 `app/views/analy_app.py`에 UI와 함께 구현되어 있습니다. UI의 인증·DB 탐색·내보내기 직접 호출과 `anti`의 LangChain 모델 호출은 점선으로 표시했습니다. Core에는 공통 스키마와 외부 서비스 어댑터가 포함됩니다.
-
-생성·평가 경로는 [`llm/providers.py`](documind/llm/providers.py), 임베딩 경로는 [`ai/embeddings.py`](documind/ai/embeddings.py), 제공자 목록은 [`llm/config.py`](documind/llm/config.py)에서 확인할 수 있습니다. Claude CLI/API 호출은 구현되어 있고, Ollama는 임베딩 제공자로 사용합니다. 제공자별 실행·인증 환경은 별도로 필요하며, 이 문서 변경에서 외부 모델 호출 성공 여부는 검증하지 않았습니다.
+기본 접속 주소는 `http://localhost:8501`입니다. 회원가입·로그인 후 문서를 업로드합니다. 규칙 기반 분석에는 외부 모델이 필요하지 않습니다. 현재 앱에는 AI 확장 토글과 별개로 API 키를 감지해 합의 진단을 시도하는 경로가 있으므로, 외부 호출 없이 시연할 때는 키를 전달하지 않고 실행합니다.
 
 ```bash
-java -Djava.awt.headless=true -Djava.awt.fonts=assets/fonts -jar plantuml.jar -charset UTF-8 -checkonly docs/diagrams/architecture.puml
-java -Djava.awt.headless=true -Djava.awt.fonts=assets/fonts -jar plantuml.jar -charset UTF-8 -tsvg docs/diagrams/architecture.puml
+env -u OPENAI_API_KEY -u GEMINI_API_KEY -u ANTHROPIC_API_KEY \
+  .venv/bin/python -m streamlit run documind/app/main.py \
+  --server.address 127.0.0.1 --server.port 8501 --server.headless true
 ```
 
-## 2. 기여 목표
-1. ChromaDB 컬렉션 미존재 및 조회 실패 상황에서도 사용자 흐름이 불필요하게 중단되지 않도록 검색 경로의 안정성을 향상.
-2. 멀티 임베딩 프로바이더 환경에서 데이터 혼합으로 인한 검색 품질 저하를 방지.
-3. 개발자/시연 운영자가 데이터 상태와 사용자 이력을 빠르게 확인할 수 있도록 가시성을 강화.
-4. 분석 결과를 즉시 검토하고 공유할 수 있도록 내보내기 기능과 한글 호환성을 개선.
-5. Actor-Critic 루프를 대화형으로 고도화해 사용자 수락·재시도·자동 진행과 최고 결과 복원을 연결.
+AI 기능을 사용할 때는 선택한 API의 키 또는 CLI 인증·실행 환경을 준비합니다. OpenAI는 `OPENAI_API_KEY`, Gemini는 `GEMINI_API_KEY`, Claude API는 `ANTHROPIC_API_KEY`를 사용합니다. Ollama 임베딩에는 로컬 Ollama와 해당 모델이, OCR에는 Tesseract가 필요합니다. [전체 의존성](requirements.txt) · [모델 설정](documind/llm/config.py) · [시연용 문서](docs/samples/)
 
-## 3. 주요 기여 내용
-
-### A. ChromaDB 조회 안정성 및 RAG 검색 경로 개선
-- 배경: ChromaDB 컬렉션 미존재, 조회 실패, provider별 임베딩 혼합 가능성으로 인해 검색 결과의 안정성이 떨어질 수 있었다.
-- 기여:
-  - ChromaDB best-practice 조회 시 target_level 조건 결과가 없으면 전체 컬렉션 재조회로 완화.
-  - ChromaDB 조회 예외가 전체 최적화 흐름으로 전파되지 않도록 fail-soft 흐름을 적용.
-  - 기존 문서 Q&A/RAG 구조와 분리해, Target Optimizer의 best-practice 검색을 embedding similarity(0.6) + BM25(0.4) 기반 hybrid retrieval로 고도화.
-- 기대 효과:
-  - 검색 저장소 상태가 불완전한 경우에도 사용자 플로우가 즉시 중단되는 리스크 감소
-  - 단순 벡터 유사도만 사용하는 방식보다 키워드 일치 신호를 함께 반영할 수 있도록 검색 품질 개선 여지를 확보.
-- 관련 커밋: [76aaf60](https://github.com/gmkoo-d3v/AIPOC/commit/76aaf60), [4d1ba9a](https://github.com/gmkoo-d3v/AIPOC/commit/4d1ba9a)
-
-### B. 멀티 프로바이더 데이터 분리
-- 배경: 임베딩 프로바이더마다 벡터 차원과 특성이 다른데 동일 저장소를 공유하면 데이터 오염과 검색 품질 저하 가능성이 있었다.
-- 기여:
-  - 프로바이더별 ChromaDB 컬렉션 및 저장 흐름을 분리.
-  - UI 탐색기에서 provider 선택 기반 조회를 지원하도록 개선.
-  - OpenAI, Gemini, Ollama 임베딩 provider 선택값을 설정으로 관리하도록 구성.
-- 기대 효과:
-  - 프로바이더 간 데이터 혼합 리스크를 줄이고 검색 결과의 일관성 유지.
-- 관련 커밋: [4d1ba9a](https://github.com/gmkoo-d3v/AIPOC/commit/4d1ba9a)
-
-### C. 운영 가시성 기능 강화
-- 배경: 개발자/시연 운영자가 사용자별 이력과 DB 상태를 직접 확인하기 어려워 장애 분석과 시연 대응에 시간이 오래 걸릴 수 있었다.
-- 기여:
-  - 사이드바 메뉴 구조를 정리.
-  - SQLite/ChromaDB 탐색기와 사용자/이력 조회 UI를 정리·연결.
-  - ChromaDB Explorer에서 RAG 문서와 best-practice 데이터를 구분해 확인할 수 있도록 구성.
-- 기대 효과:
-  - 데이터 저장 상태를 빠르게 파악하고 원인 추적 시간을 줄일 수 있도록 지원.
-- 관련 커밋: [b013cc3](https://github.com/gmkoo-d3v/AIPOC/commit/b013cc3), [f66c715](https://github.com/gmkoo-d3v/AIPOC/commit/f66c715), [4d78fab](https://github.com/gmkoo-d3v/AIPOC/commit/4d78fab), [aaf29f8](https://github.com/gmkoo-d3v/AIPOC/commit/aaf29f8)
-
-### D. 결과 내보내기 및 한글 호환성 개선
-- 배경: 분석 결과를 외부에 공유하려면 별도 가공이 필요했고, TXT/PDF 내보내기 시 한글 깨짐 이슈가 있었다.
-- 기여:
-  - 히스토리, 베스트 프랙티스, SQLite 탐색기 화면에서 TXT/PDF 내보내기를 연결.
-  - TXT는 UTF-8 BOM을 적용하고, PDF는 `TTFont` 로딩을 보완해 한글 호환성을 개선.
-  - 최적화 결과 화면에서는 TXT, DOCX, PDF, ZIP 다운로드를 지원.
-- 기대 효과:
-  - 분석 결과를 바로 공유 가능한 파일 형태로 내려받을 수 있게 되었고, 한글 출력 호환성을 개선.
-- 관련 커밋: [4d78fab](https://github.com/gmkoo-d3v/AIPOC/commit/4d78fab), [aaf29f8](https://github.com/gmkoo-d3v/AIPOC/commit/aaf29f8), [5446707](https://github.com/gmkoo-d3v/AIPOC/commit/5446707), [58f7f41](https://github.com/gmkoo-d3v/AIPOC/commit/58f7f41), [8326a08](https://github.com/gmkoo-d3v/AIPOC/commit/8326a08)
-
-### E. 협업 / 구조 개선
-- 배경: 중첩 저장소와 불안정한 디렉터리 구조로 인해 개발 및 협업 흐름이 매끄럽지 않았다.
-- 기여:
-  - 소스 구조를 `documind` 패키지 중심으로 정리.
-  - `.gitignore`를 정비하고 불필요한 추적 파일을 정리.
-- 기대 효과:
-  - 개발 환경의 일관성을 높이고 협업 중 충돌 가능성을 줄였다.
-- 관련 커밋: [f66c715](https://github.com/gmkoo-d3v/AIPOC/commit/f66c715), [412d0e0](https://github.com/gmkoo-d3v/AIPOC/commit/412d0e0), [5ea4f6f](https://github.com/gmkoo-d3v/AIPOC/commit/5ea4f6f), [48b17d1](https://github.com/gmkoo-d3v/AIPOC/commit/48b17d1)
-
-### F. Actor-Critic 검증 루프 고도화 및 사용자 의사결정 흐름 구현
-- 구현 범위: 기존 Actor-Critic 생성·평가 루프에 상태 모델, 대화형 실행 제어, 사용자 수락·재시도·자동 진행을 추가했습니다.
-- [76aaf60](https://github.com/gmkoo-d3v/AIPOC/commit/76aaf60): `OptimizerState`와 generator 기반 상태 전달, 점수 구간별 `WAIT_CONFIRM`, `accept`/`retry` 처리, 추가 개선 후 점수가 하락하면 최고 결과로 복원하는 로직, Target Optimizer 및 Streamlit 세션 연결을 구현했습니다.
-- [30f4f66](https://github.com/gmkoo-d3v/AIPOC/commit/30f4f66): `auto_run` 결정과 수락·1회 재시도·끝까지 자동 진행의 3버튼 UI를 추가했습니다.
-- 동작 기준: 기본 설정상 90점 이상 통과, 85~89점에서 사용자 확인을 요청합니다. 이는 Critic 모델의 내부 평가 점수이며 실제 정확도나 사용자 만족도 측정값과는 구분합니다.
-- 기여 경계: 초기 생성→평가→재작성 및 Best-of-N 루프는 이전 팀 커밋 [423020e](https://github.com/gmkoo-d3v/AIPOC/commit/423020e)에 이미 있습니다. 개인 기여는 위의 상태 기반 제어·복원·대화형 흐름 고도화입니다.
-- 관련 커밋: [76aaf60](https://github.com/gmkoo-d3v/AIPOC/commit/76aaf60), [30f4f66](https://github.com/gmkoo-d3v/AIPOC/commit/30f4f66); 초기 구현 확인: [423020e](https://github.com/gmkoo-d3v/AIPOC/commit/423020e).
-
-## 4. 주로 기여한 코드 영역
-- `documind/app/views/analy_app.py`
-- `documind/utils/export.py`
-- `documind/utils/best_practice_manager.py`
-- `documind/target_optimizer/optimizer.py`
-- `documind/actor_critic/orchestrator.py`
-- `documind/llm/config.py`
-- `documind/ai/embeddings.py`
-- `documind/utils/db.py`
-
-## 5. 검증 관점
-- ChromaDB 컬렉션 미존재/조회 실패 상황에서 예외가 사용자 플로우 전체로 전파되지 않는지 확인
-- 프로바이더 분리 저장 및 조회가 일관되게 유지되는지 확인
-- 탐색기 기능에서 데이터 조회 및 다운로드가 정상 동작하는지 확인
-- 한글 TXT/PDF 출력이 깨지지 않고 정상 렌더링되는지 확인
-- best-practice 검색 결과가 provider/target_level 조건에 맞게 반환되는지 확인
-
-### 수치와 검증 범위
-- Hybrid 검색은 정규화한 embedding similarity 0.6 + BM25 0.4로 결합합니다. 의미 유사도에 더 큰 비중을 두면서 키워드 일치도 반영하는 가중치입니다.
-- 이번에 확인한 구현·테스트·평가 스크립트에서 순수 임베딩 대비 적중률이나 이 가중치를 선정한 비교 실험 결과를 확인하지 못했습니다. 0.6/0.4의 최적성·검색 성능 개선율은 `[uncertain]`이며 실측 성과로 주장하지 않습니다.
-- Actor-Critic의 85/90점과 best-practice 저장 기준 95점은 내부 정책값입니다. 모델 품질 개선율이나 서비스 성능 수치로 해석하지 않습니다.
-- 발표 스택에도 LangChain을 포함하고, AI 항목은 “생성·평가: Gemini/Claude/OpenAI/Codex, 임베딩: OpenAI/Gemini/Ollama”로 구분하면 구현과 일치합니다. 전체 의존성은 [`requirements.txt`](requirements.txt)를 기준으로 확인합니다.
-
-### 참고 테스트 명령
-```bash
-PYTHONPATH=. pytest documind/tests/test_loaders.py documind/tests/test_db_embeddings.py -q
-```
-
-환경 의존 기능까지 확인할 때는 아래 테스트를 추가로 실행합니다. 로컬 Ollama, ChromaDB 저장 상태, API 키 설정에 따라 결과가 달라질 수 있습니다.
+## 6. 검증과 한계
 
 ```bash
-PYTHONPATH=. pytest documind/tests/test_optim_rag.py -q
-PYTHONPATH=. pytest documind/tests/test_eval_cases.py -q
+PYTHONPATH=. .venv/bin/python -m pytest \
+  --confcutdir=documind/tests --import-mode=importlib \
+  documind/tests/test_loaders.py documind/tests/test_db_embeddings.py -q
 ```
 
-## 6. 실행 방법 (Quick Start)
-
-### 실행 환경
-- Python `3.10 ~ 3.12` 권장
-- Streamlit 기반 로컬 실행
-- 기본 실행 엔트리포인트: `documind/app/main.py`
-
-### 1) 가상환경 생성
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-```
-
-Windows PowerShell:
-
-```powershell
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-```
-
-### 2) 의존성 설치
-```bash
-pip install --upgrade pip
-pip install -r requirements.txt
-```
-
-### 3) 환경 변수 설정
-환경 변수는 실행 전 shell에 직접 export하거나 배포 환경의 환경 변수로 설정합니다.
-
-macOS/Linux:
+위 수집 옵션은 저장소 최상위 `__init__.py`의 패키지 import 문제를 피하기 위한 것입니다. 로더·SQLite·캐시 테스트 9개는 Python 3.12 환경에서 통과했습니다. 환경 의존 검증은 별도로 실행합니다. `test_optim_rag.py`는 로컬 임베딩·ChromaDB 환경을 필요로 하며, 단독으로 검색 적중률 개선을 입증하는 테스트는 아닙니다.
 
 ```bash
-export OPENAI_API_KEY="your-openai-api-key"
-export OPENAI_MODEL="gpt-4o-mini"
-
-# Optional
-export GEMINI_API_KEY=""
-export ANTHROPIC_API_KEY=""
-export DEFAULT_EMBEDDING_PROVIDER="OpenAI"
+PYTHONPATH=. .venv/bin/python -m pytest \
+  --confcutdir=documind/tests --import-mode=importlib \
+  documind/tests/test_optim_rag.py -q
 ```
 
-Windows PowerShell:
+- Critic의 85/90점, 우수사례 저장 기준 95점은 내부 정책값입니다. 실측 정확도·사용자 만족도와 구분합니다.
+- 순수 임베딩 대비 적중률·응답 시간 개선은 비교 측정 결과를 확인하지 못했으며 `[uncertain]`입니다.
+- provider별 컬렉션 분리는 구현되어 있습니다. 동일 provider 안의 모델 변경·벡터 차원 호환성은 별도 검증 대상입니다.
+- 일반 사용자 이력 필터, RAG 탐색기 필터, Q&A 검색 범위는 각각의 경로에서 확인해야 합니다. 전체 접근 통제를 한 장의 화면으로 검증했다고 주장하지 않습니다.
 
-```powershell
-$env:OPENAI_API_KEY="your-openai-api-key"
-$env:OPENAI_MODEL="gpt-4o-mini"
+## 7. 다이어그램 원본과 재생성
 
-# Optional
-$env:GEMINI_API_KEY=""
-$env:ANTHROPIC_API_KEY=""
-$env:DEFAULT_EMBEDDING_PROVIDER="OpenAI"
-```
+본문의 **기능 인포그래픽 6종**은 코드와 대조한 문구를 바탕으로 새로 생성한 설명용 이미지입니다. [인포그래픽 목록과 설명 범위](docs/infographics/README.md)를 제공합니다. 실제 앱 화면은 별도의 스크린샷이며, 인포그래픽을 실행 결과나 성능 측정 자료로 사용하지 않습니다.
 
-- `OPENAI_API_KEY`: AI 설명, Q&A, OpenAI 임베딩 경로 사용 시 필요
-- `OPENAI_MODEL`: OpenAI 기반 Q&A/설명 생성 모델 선택값
-- `GEMINI_API_KEY`: Gemini API 사용 시 필요
-- `ANTHROPIC_API_KEY`: Claude API 사용 시 필요
-- `DEFAULT_EMBEDDING_PROVIDER`: 기본 임베딩 제공자 선택값(`OpenAI`, `Gemini`, `Ollama`)
+상세 구현 참조도는 PlantUML 원본에서 SVG·PNG로 렌더링했습니다. 슬라이드용 간소화 구조도도 함께 제공합니다. 아래 명령은 이 PlantUML 참조도를 다시 생성합니다.
 
-### 4) 앱 실행
 ```bash
-streamlit run documind/app/main.py
+# plantuml.jar는 준비한 PlantUML JAR 경로로 변경합니다.
+java -Djava.awt.headless=true -Djava.awt.fonts=assets/fonts \
+  -jar plantuml.jar -charset UTF-8 -checkonly 'docs/diagrams/*.puml'
+java -Djava.awt.headless=true -Djava.awt.fonts=assets/fonts \
+  -jar plantuml.jar -charset UTF-8 -tsvg 'docs/diagrams/*.puml'
+java -Djava.awt.headless=true -Djava.awt.fonts=assets/fonts \
+  -jar plantuml.jar -charset UTF-8 -tpng 'docs/diagrams/*.puml'
 ```
 
-Windows PowerShell에서는 아래 스크립트로도 실행할 수 있습니다.
-
-```powershell
-./scripts/demo_run.ps1
-```
-
-실행 후 기본 접속 주소:
-
-```text
-http://localhost:8501
-```
-
-### 5) 포트폴리오 시연 추천 순서
-1. `sample_pdfs/` 안의 예시 PDF 하나를 업로드
-2. `분석` 메뉴에서 품질 점검 결과 확인
-3. `타겟 최적화` 메뉴에서 대상별 리라이팅 확인
-4. `SQLite 탐색기`와 `ChromaDB 탐색기`에서 저장 상태 확인
-5. TXT/PDF 내보내기로 결과 공유 포맷 확인
-
-### 6) 선택 의존성
-- OCR 기반 PDF Q&A 기능까지 확인하려면 시스템에 `Tesseract` 설치가 필요합니다.
-- 로컬 임베딩 경로를 쓰려면 `Ollama`가 실행 중이어야 합니다.
-
-### 7) 최소 검증 명령
-```bash
-PYTHONPATH=. pytest documind/tests/test_loaders.py documind/tests/test_db_embeddings.py -q
-```
-
-의존성 설치 후 위 테스트로 로더 경로와 SQLite/embedding cache 경로가 정상 동작하는지 빠르게 확인할 수 있습니다.
+한글 렌더링에는 저장소의 NanumGothic 폰트를 사용합니다. Smetana 레이아웃을 사용하므로 별도 Graphviz 설치가 필요하지 않습니다. [기존 이미지 검토와 수정 근거](docs/diagram-review.md)

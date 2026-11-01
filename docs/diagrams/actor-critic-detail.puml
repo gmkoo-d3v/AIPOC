@@ -1,0 +1,72 @@
+@startuml
+!pragma layout smetana
+skinparam defaultFontName NanumGothic
+skinparam defaultFontSize 15
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam activityBackgroundColor #EDF5FF
+skinparam activityBorderColor #5880A8
+skinparam ArrowColor #64748B
+title Actor–Critic — 점수와 사용자 결정으로 제어하는 개선 루프
+start
+:설정 로드 · 기본 시도 한도 5회\n추가/보너스 미사용 · auto_run=false;
+repeat
+  :Actor가 초안 생성\nCritic이 점수·피드백 반환;
+  :시도 이력과 최고 결과 갱신\n동점은 최신 결과 선택;
+  if (처음으로 90점 이상?) then (예)
+    :보너스 개선 1회 예약\n마지막 시도라면 한도 +1\nREFINE_FOR_95 상태 전달;
+  else (아니오)
+    if (보너스 사용 후 현재 < 최고 점수?) then (예)
+      :최고 결과로 복원\nPASS / ROLLBACK_TO_BEST 반환;
+      stop
+    else (아니오)
+      if (현재 점수 ≥ 90?) then (예)
+        :PASS 상태 전달·반환;
+        stop
+      else (아니오)
+        if (85 ≤ 현재 점수 < 90\nand auto_run=false?) then (예)
+          :WAIT_CONFIRM 전달\n사용자 결정 대기;
+          if (accept?) then (예)
+            :현재 결과 PASS / ACCEPTED 반환;
+            stop
+          else (retry 또는 auto_run)
+            :auto_run 선택 시 이후 중간 확인 생략\n그 외 입력도 retry로 처리;
+          endif
+        else (아니오)
+          :FAIL 상태 전달 · 개선 계속;
+        endif
+      endif
+    endif
+    :시도 수 +1;
+    if (현재 한도에 도달?) then (예)
+      if (추가 미사용 and 최고 < 75?) then (예)
+        :추가 시도 +3회 · 한 번만 연장;
+      else (아니오)
+        if (이번 상태가 WAIT_CONFIRM?) then (예)
+          :현재 결과 PASS 반환\nACCEPTED_NO_RETRIES;
+          stop
+        else (아니오)
+          :전체 이력 중 최고 결과 선택;
+          if (85 ≤ 최고 점수 < 90?) then (예)
+            :최종 WAIT_CONFIRM 전달\nauto_run 이후에도 발생 가능;
+            :accept면 PASS / ACCEPTED\n그 외 결정은 WAIT_CONFIRM 그대로 반환;
+          else (아니오)
+            :최고 결과를 FAIL로 반환;
+          endif
+          stop
+        endif
+      endif
+    endif
+  endif
+  :원문 + 현재 피드백으로 개선 프롬프트 구성\n보너스 경로도 시도 수 +1;
+repeat while (남은 시도 있음) is (예)
+stop
+legend bottom
+  기본값 기준 도식 · 임계값과 시도 수는 설정 가능
+  5회는 고정 상한이 아닙니다. +3회 연장과 보너스 +1회는 각각 제한됩니다.
+  첫 90점 이상은 즉시 종료하지 않고 개선을 한 번 시도합니다(95점은 목표).
+  보너스 이후 점수 하락 시 최고 결과 복원이 일반 점수 분기보다 먼저 실행됩니다.
+  Critic JSON 파싱 실패 시 점수 50과 실패 피드백을 사용합니다.
+  근거: documind/actor_critic/orchestrator.py · documind/llm/config.py
+endlegend
+@enduml

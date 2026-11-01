@@ -1,0 +1,48 @@
+@startuml
+!pragma layout smetana
+top to bottom direction
+skinparam defaultFontName NanumGothic
+skinparam defaultFontSize 16
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam ArrowColor #64748B
+skinparam rectangleBackgroundColor #EDF5FF
+skinparam rectangleBorderColor #5880A8
+skinparam packageStyle rectangle
+title 타겟 최적화 — UI가 실행·결정·이력을 제어하는 재작성 파이프라인
+actor "사용자" as User
+rectangle "Streamlit UI · analy_app.py\n원문 추출·대상/Actor/Critic 선택\n세션 보관 · generator 진행/재개" as UI #E9F5EF
+package "TargetOptimizer · start_interactive / finalize_interactive" {
+  rectangle "페르소나 가이드 + 복잡도 휴리스틱\nexpert는 Direct\n그 외 복잡도 > 0.4면 Plan-and-Solve" as Route
+  rectangle "Planner · 선택 경로\n원문 앞 2,000자로 재작성 계획 생성\nJSON 파싱 실패 시 빈 actions 사용" as Plan
+  rectangle "재작성 프롬프트 구성\n대상별 톤·어휘·구조\nBest Practice 예시 최대 2개 + 계획(선택)" as Prompt
+  rectangle "Actor–Critic generator\n생성 → 평가 → 피드백 개선\n85~89 확인 · 90+ 보너스 개선\n최고 결과 복원·제한된 추가 시도" as Loop
+  rectangle "최종화 · 결과 필드 구성\n숫자/날짜: 원문에 없는 값이면 실패\n영문 고유명사: 경고만 기록\nROLLBACK 메시지면 검사 생략" as Guard
+  rectangle "Fallback · 숫자/날짜 검사 실패 시\n단순 재작성 LLM 1회\nanalysis.score=3 · 추가 검사 없음" as Fall #FFF4E5
+}
+rectangle "Best Practice 검색\nEmbedding 0.6 + BM25 0.4\n품질 ≥92 · 기본 상위 2개" as Best
+rectangle "UI 결과 처리\n결과·피드백 표시 · 다운로드 제공\nscore ≥95이면 Best Practice 아카이브 시도\n및 anti 문서 목록에 결과 추가" as Result #E9F5EF
+database "SQLite 분석 이력\nUI가 사용자와 전체 결과 JSON 저장\n세션 키(file_hash + 대상)로 중복 저장 억제" as DB
+User --> UI
+UI --> Route : start_interactive\n전체 원문 단일 세션
+Route --> Plan : Plan-and-Solve
+Route --> Prompt : Direct
+Plan --> Prompt
+Best --> Prompt : 참고 예시
+Prompt --> Loop
+Loop --> UI : 상태·점수·피드백\nWAIT_CONFIRM 시 결정 대기
+UI --> Loop : accept / retry / auto_run
+Loop --> Guard : 종료 상태로 finalize_interactive
+Guard --> Fall : 검사 실패
+Guard --> Result : 통과 또는 검사 생략
+Fall --> Result
+Result --> DB : UI 결과 렌더링 시
+legend bottom
+  Actor/Critic은 생성·평가 역할이며 서로 다른 provider 선택이 가능합니다.
+  rollback에서 guardrail을 생략하는 것은 현재 동작입니다. 사전 검증 완료를 보장하지 않습니다.
+  analyze() 배치 경로는 기본 3,000자 분할 후 병합하며, 각 조각을 검사하고 예외도 fallback 처리합니다.
+  배치의 결정 콜백이 없으면 확인 상태를 자동 수락합니다. 위 주 흐름은 UI의 대화형 경로입니다.
+  Optimizer는 UI 이력 저장을 담당하지 않습니다. 95점은 저장 시도 조건이며 저장 성공을 보장하지 않습니다.
+  근거: target_optimizer/optimizer.py · target_optimizer/guardrail.py · app/views/analy_app.py
+endlegend
+@enduml

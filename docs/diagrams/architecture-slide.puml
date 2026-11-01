@@ -1,0 +1,29 @@
+@startuml
+!pragma layout smetana
+left to right direction
+skinparam defaultFontName NanumGothic
+skinparam defaultFontSize 16
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam ArrowColor #64748B
+skinparam rectangle {
+  BackgroundColor #F0F7FF
+  BorderColor #5880A8
+  RoundCorner 12
+}
+title Documind — 문서 분석·타깃 최적화
+rectangle "Streamlit + Application\n업로드·로그인·세션 제어\nanaly_app.py" as UI #EAF4EF
+rectangle "Domain Modules\n문서 추출·품질 분석\nRAG Q&A·안티테제\nTarget Optimization\n↳ Actor-Critic + 사용자 결정" as Domain
+rectangle "Core Infrastructure\nLLM·임베딩 어댑터\nHybrid best-practice 검색\nSQLite·ChromaDB·내보내기" as Core #EAF4EF
+rectangle "External Models\n생성/평가: Gemini·Claude\nOpenAI·Codex\n임베딩: OpenAI·Gemini·Ollama" as Models
+UI --> Domain
+Domain --> Core
+Core --> Models
+UI ..> Core : 인증·탐색기·출력
+Domain ..> Models : anti LangChain
+legend bottom
+  내 역할: Actor-Critic 대화형 제어·최고 결과 복원, Hybrid 검색·provider 분리, 탐색기·내보내기
+  UI와 Application은 현재 같은 파일입니다. 점선은 직접 호출 경로입니다.
+  코드·기여 근거: https://github.com/gmkoo-d3v/AIPOC
+endlegend
+@enduml
