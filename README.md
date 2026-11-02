@@ -1,5 +1,7 @@
 # DocuMind — 문서 대상 맞춤 최적화 · 개인 기여 포트폴리오
 
+![DocuMind 프로젝트 소개와 개인 기여: 3인 팀 PoC, 최적화 실행 제어, 우수사례 검색·저장, 데이터 탐색·출력](docs/infographics/contribution-overview.png)
+
 문서를 독자의 수준에 맞게 재작성하고, 생성·평가 LLM을 나눈 Actor-Critic 흐름으로 결과를 점검하는 3인 팀 프로젝트입니다. 이 README는 프로젝트 구조와 제가 구현·고도화한 범위를 코드·커밋·화면으로 정리합니다.
 
 [원본 팀 저장소](https://github.com/Bjs-coder-kr/AIPOC) · [개인 포트폴리오 저장소](https://github.com/gmkoo-d3v/AIPOC) · [구현 검토 기록](docs/diagram-review.md)
